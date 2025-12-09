@@ -57,7 +57,7 @@ export function HeroPortal() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1 }}
-          className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tighter mb-6 relative"
+          className="text-4xl md:text-7xl lg:text-8xl font-extrabold tracking-tighter mb-6 relative px-2"
         >
           <span className="bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60">
             Learn <span className="text-primary">•</span> Build
