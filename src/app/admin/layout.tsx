@@ -1,4 +1,7 @@
+"use client"
+
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
+import { useRouter } from "next/navigation"
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -14,6 +17,7 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
+  const router = useRouter()
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-red-500/30">
       <AdminSidebar />
@@ -62,7 +66,10 @@ export default function AdminLayout({
                             <LayoutDashboard className="mr-2 h-4 w-4" /> USER_VIEW_OVERRIDE
                         </DropdownMenuItem>
                         <DropdownMenuSeparator className="bg-white/10" />
-                        <DropdownMenuItem className="text-red-500 focus:bg-red-950/50 focus:text-red-400 cursor-pointer font-mono text-xs font-bold">
+                        <DropdownMenuItem 
+                            className="text-red-500 focus:bg-red-950/50 focus:text-red-400 cursor-pointer font-mono text-xs font-bold"
+                            onClick={() => router.push("/dashboard")}
+                        >
                             <LogOut className="mr-2 h-4 w-4" /> TERMINATE_SESSION
                         </DropdownMenuItem>
                     </DropdownMenuContent>

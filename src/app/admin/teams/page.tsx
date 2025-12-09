@@ -4,11 +4,14 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import { 
   Search, Shield, Users, Trophy, AlertTriangle, 
-  Ban, Crown, RefreshCcw, Coins, Zap, Trash2, ArrowRightLeft
+  Ban, Crown, RefreshCcw, Coins, Zap, Trash2, ArrowRightLeft, CheckSquare
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Textarea } from "@/components/ui/textarea"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,28 +28,84 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { toast } from "sonner"
 
 // Mock Team Data
 const TEAMS = [
-  { id: 1, name: "NullPointers", leader: "Neo_Anderson", members: 4, xp: 45000, coins: 1200, status: "Active", rank: 1 },
-  { id: 2, name: "Cyber_Samurai", leader: "Ghost_Dog", members: 3, xp: 32000, coins: 800, status: "Active", rank: 2 },
-  { id: 3, name: "Script_Kiddies", leader: "NoobMaster", members: 5, xp: 12000, coins: 150, status: "Flagged", rank: 5 },
-  { id: 4, name: "Bot_Farm_99", leader: "AutoBot", members: 10, xp: 999999, coins: 50000, status: "Frozen", rank: 0 },
+  { id: 1, name: "NullPointers", leader: "Neo_Anderson", members: 4, xp: 45000, coins: 1200, status: "Active", rank: 1, roster: ["Neo_Anderson", "Trinity", "Morpheus", "Tank"] },
+  { id: 2, name: "Cyber_Samurai", leader: "Ghost_Dog", members: 3, xp: 32000, coins: 800, status: "Active", rank: 2, roster: ["Ghost_Dog", "Jin", "Mugen"] },
+  { id: 3, name: "Script_Kiddies", leader: "NoobMaster", members: 5, xp: 12000, coins: 150, status: "Flagged", rank: 5, roster: ["NoobMaster", "Korg", "Miek", "Thor", "Loki"] },
+  { id: 4, name: "Bot_Farm_99", leader: "AutoBot", members: 10, xp: 999999, coins: 50000, status: "Frozen", rank: 0, roster: ["AutoBot", "Bot_1", "Bot_2"] },
 ]
+
+type ModalType = 'none' | 'transfer' | 'reset' | 'dissolve'
 
 export default function TeamManagementPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedTeam, setSelectedTeam] = useState<typeof TEAMS[0] | null>(null)
-  const [isDissolveDialogOpen, setIsDissolveDialogOpen] = useState(false)
+  const [activeModal, setActiveModal] = useState<ModalType>('none')
+  
+  // Modal States
+  const [newOwner, setNewOwner] = useState("")
+  const [resetOptions, setResetOptions] = useState({ xp: false, coins: false, rank: false })
+  const [resetReason, setResetReason] = useState("")
 
   const filteredTeams = TEAMS.filter(t => 
     t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     t.leader.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  const openModal = (type: ModalType, team: typeof TEAMS[0]) => {
+      setSelectedTeam(team)
+      setActiveModal(type)
+      
+      setNewOwner("")
+      setResetOptions({ xp: false, coins: false, rank: false })
+      setResetReason("")
+  }
+
+  const handleTransferOwnership = () => {
+      if (!newOwner) {
+          toast.error("New Owner Required", { description: "Please select a member to transfer ownership to." })
+          return
+      }
+      toast.success("Ownership Transferred", { 
+          description: `${selectedTeam?.name} is now led by ${newOwner}.` 
+      })
+      setActiveModal('none')
+  }
+
+  const handleResetStats = () => {
+      if (!resetReason) {
+          toast.error("Reason Required", { description: "Please specify why you are resetting stats." })
+          return
+      }
+      if (!resetOptions.xp && !resetOptions.coins && !resetOptions.rank) {
+          toast.error("No Stats Selected", { description: "Select at least one stat to reset." })
+          return
+      }
+      
+      const resetted = []
+      if (resetOptions.xp) resetted.push("XP")
+      if (resetOptions.coins) resetted.push("Treasury")
+      if (resetOptions.rank) resetted.push("Rank")
+      
+      toast.success("Team Stats Reset", { 
+          description: `Reset ${resetted.join(', ')} for ${selectedTeam?.name}.` 
+      })
+      setActiveModal('none')
+  }
+
   const handleDissolveTeam = () => {
-      console.log("Dissolving team:", selectedTeam?.name)
-      setIsDissolveDialogOpen(false)
+      toast.success("Team Dissolved", { description: `${selectedTeam?.name} has been permanently disbanded.` })
+      setActiveModal('none')
   }
 
   return (
@@ -144,19 +203,16 @@ export default function TeamManagementPage() {
                                 <DropdownMenuContent align="end" className="w-56 bg-black/90 border-white/10 backdrop-blur-xl">
                                     <DropdownMenuLabel>Actions for {team.name}</DropdownMenuLabel>
                                     <DropdownMenuSeparator className="bg-white/10" />
-                                    <DropdownMenuItem className="focus:bg-white/10 cursor-pointer">
+                                    <DropdownMenuItem onClick={() => openModal('transfer', team)} className="focus:bg-white/10 cursor-pointer">
                                         <ArrowRightLeft className="w-4 h-4 mr-2" /> Transfer Leadership
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem className="text-blue-400 focus:bg-blue-500/20 focus:text-blue-300 cursor-pointer">
+                                    <DropdownMenuItem onClick={() => openModal('reset', team)} className="text-blue-400 focus:bg-blue-500/20 focus:text-blue-300 cursor-pointer">
                                         <RefreshCcw className="w-4 h-4 mr-2" /> Reset Stats
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator className="bg-white/10" />
                                     <DropdownMenuItem 
                                         className="text-red-500 focus:bg-red-500/20 focus:text-red-400 cursor-pointer"
-                                        onClick={() => {
-                                            setSelectedTeam(team)
-                                            setIsDissolveDialogOpen(true)
-                                        }}
+                                        onClick={() => openModal('dissolve', team)}
                                     >
                                         <Trash2 className="w-4 h-4 mr-2" /> Force Dissolve
                                     </DropdownMenuItem>
@@ -168,8 +224,83 @@ export default function TeamManagementPage() {
           ))}
       </div>
 
-       {/* Dissolve Confirmation Dialog */}
-       <Dialog open={isDissolveDialogOpen} onOpenChange={setIsDissolveDialogOpen}>
+       {/* 1. Transfer Ownership Dialog */}
+       <Dialog open={activeModal === 'transfer'} onOpenChange={(val) => !val && setActiveModal('none')}>
+           <DialogContent className="bg-black/90 border-indigo-500/20 text-white backdrop-blur-xl">
+               <DialogHeader>
+                   <DialogTitle className="flex items-center gap-2 text-indigo-400"><ArrowRightLeft className="w-5 h-5" /> Transfer Leadership</DialogTitle>
+                   <DialogDescription>Select a new leader for {selectedTeam?.name}.</DialogDescription>
+               </DialogHeader>
+               <div className="grid gap-4 py-4">
+                   <div className="space-y-2">
+                       <Label>New Owner</Label>
+                       <Select value={newOwner} onValueChange={setNewOwner}>
+                           <SelectTrigger className="bg-black/50 border-white/10 text-white"><SelectValue placeholder="Select member..." /></SelectTrigger>
+                           <SelectContent className="bg-black border-white/10 text-white">
+                                {selectedTeam?.roster.filter(m => m !== selectedTeam.leader).map(member => (
+                                    <SelectItem key={member} value={member}>{member}</SelectItem>
+                                ))}
+                           </SelectContent>
+                       </Select>
+                       <p className="text-xs text-muted-foreground">Current leader will be demoted to Member.</p>
+                   </div>
+               </div>
+               <DialogFooter>
+                   <Button variant="ghost" onClick={() => setActiveModal('none')}>Cancel</Button>
+                   <Button onClick={handleTransferOwnership} className="bg-indigo-600 hover:bg-indigo-700">Confirm Transfer</Button>
+               </DialogFooter>
+           </DialogContent>
+       </Dialog>
+
+       {/* 2. Reset Stats Dialog */}
+       <Dialog open={activeModal === 'reset'} onOpenChange={(val) => !val && setActiveModal('none')}>
+           <DialogContent className="bg-black/90 border-blue-500/20 text-white backdrop-blur-xl">
+               <DialogHeader>
+                   <DialogTitle className="flex items-center gap-2 text-blue-400"><RefreshCcw className="w-5 h-5" /> Reset Team Stats</DialogTitle>
+                   <DialogDescription>Select metrics to wipe for {selectedTeam?.name}.</DialogDescription>
+               </DialogHeader>
+               <div className="grid gap-4 py-4">
+                    <div className="grid gap-3">
+                        <Label>Select Targets</Label>
+                        <div className="flex items-center space-x-2 border border-white/10 p-3 rounded-md bg-black/40">
+                            <Checkbox id="reset-xp" checked={resetOptions.xp} onCheckedChange={(c) => setResetOptions({...resetOptions, xp: !!c})} />
+                            <label htmlFor="reset-xp" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2">
+                                <Zap className="w-3 h-3 text-purple-400" /> Team XP
+                            </label>
+                        </div>
+                        <div className="flex items-center space-x-2 border border-white/10 p-3 rounded-md bg-black/40">
+                            <Checkbox id="reset-coins" checked={resetOptions.coins} onCheckedChange={(c) => setResetOptions({...resetOptions, coins: !!c})} />
+                            <label htmlFor="reset-coins" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2">
+                                <Coins className="w-3 h-3 text-yellow-400" /> Treasury Balance
+                            </label>
+                        </div>
+                        <div className="flex items-center space-x-2 border border-white/10 p-3 rounded-md bg-black/40">
+                            <Checkbox id="reset-rank" checked={resetOptions.rank} onCheckedChange={(c) => setResetOptions({...resetOptions, rank: !!c})} />
+                            <label htmlFor="reset-rank" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2">
+                                <Trophy className="w-3 h-3 text-indigo-400" /> Leaderboard Rank
+                            </label>
+                        </div>
+                    </div>
+                
+                    <div className="space-y-2">
+                        <Label className="text-red-400">Reason (Required)</Label>
+                        <Textarea 
+                            placeholder="Why is this reset necessary?" 
+                            className="bg-black/50 border-white/10 min-h-[80px]" 
+                            value={resetReason}
+                            onChange={(e) => setResetReason(e.target.value)}
+                        />
+                    </div>
+               </div>
+               <DialogFooter>
+                   <Button variant="ghost" onClick={() => setActiveModal('none')}>Cancel</Button>
+                   <Button onClick={handleResetStats} className="bg-blue-600 hover:bg-blue-700">Wipe Selected Data</Button>
+               </DialogFooter>
+           </DialogContent>
+       </Dialog>
+
+       {/* 3. Dissolve Confirmation Dialog */}
+       <Dialog open={activeModal === 'dissolve'} onOpenChange={(val) => !val && setActiveModal('none')}>
           <DialogContent className="bg-black/90 border-red-500/20 backdrop-blur-xl sm:max-w-[425px]">
               <DialogHeader>
                   <DialogTitle className="text-red-500 flex items-center gap-2">
@@ -190,7 +321,7 @@ export default function TeamManagementPage() {
                   <Input placeholder="Type 'DELETE-FACTION' to confirm" className="mt-2 bg-black/50 border-red-500/30 text-red-400 placeholder:text-red-500/20" />
               </div>
               <DialogFooter>
-                  <Button variant="ghost" onClick={() => setIsDissolveDialogOpen(false)}>Cancel</Button>
+                  <Button variant="ghost" onClick={() => setActiveModal('none')}>Cancel</Button>
                   <Button variant="destructive" className="bg-red-600 hover:bg-red-700" onClick={handleDissolveTeam}>
                       <Trash2 className="w-4 h-4 mr-2" /> Disband Faction
                   </Button>
